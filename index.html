@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Editor Markdown</title>
+  <style>
+    :root { --bg: #f8f9fa; --surface: #fff; --text: #1a1a1a; --text-secondary: #6b7280; --border: #e5e7eb; --accent: #2563eb; --editor-bg: #fff; --code-bg: #f1f5f9; }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+    .container { max-width: 1400px; margin: 0 auto; padding: 2rem; }
+    header { margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+    h1 { font-size: 1.5rem; font-weight: 600; }
+    .toolbar { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+    .toolbar-btn { background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-size: 0.875rem; transition: background 0.2s; }
+    .toolbar-btn:hover { background: var(--border); }
+    .editor-container { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; min-height: 600px; }
+    .editor-pane, .preview-pane { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+    .pane-header { padding: 0.75rem 1rem; background: var(--bg); border-bottom: 1px solid var(--border); font-size: 0.875rem; font-weight: 600; color: var(--text-secondary); }
+    textarea { width: 100%; height: 100%; min-height: 550px; padding: 1rem; border: none; outline: none; resize: none; font-family: "Monaco","Menlo","Ubuntu Mono",monospace; font-size: 0.875rem; line-height: 1.6; background: var(--editor-bg); color: var(--text); }
+    .preview-content { padding: 1rem; min-height: 550px; overflow-y: auto; }
+    .preview-content h1 { font-size: 2rem; margin: 1.5rem 0 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
+    .preview-content h2 { font-size: 1.5rem; margin: 1.5rem 0 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
+    .preview-content h3 { font-size: 1.25rem; margin: 1.25rem 0 0.75rem; }
+    .preview-content p { margin: 1rem 0; }
+    .preview-content ul, .preview-content ol { margin: 1rem 0; padding-left: 2rem; }
+    .preview-content code { background: var(--code-bg); padding: 0.125rem 0.375rem; border-radius: 3px; font-family: "Monaco","Menlo","Ubuntu Mono",monospace; font-size: 0.875em; }
+    .preview-content pre { background: var(--code-bg); padding: 1rem; border-radius: 6px; overflow-x: auto; margin: 1rem 0; }
+    .preview-content pre code { background: none; padding: 0; }
+    .preview-content blockquote { border-left: 4px solid var(--accent); padding-left: 1rem; margin: 1rem 0; color: var(--text-secondary); }
+    .preview-content a { color: var(--accent); text-decoration: none; }
+    .preview-content a:hover { text-decoration: underline; }
+    .preview-content img { max-width: 100%; height: auto; border-radius: 6px; }
+    .preview-content hr { border: none; border-top: 2px solid var(--border); margin: 2rem 0; }
+    .word-count { font-size: 0.875rem; color: var(--text-secondary); margin-top: 0.5rem; }
+    @media (max-width: 768px) { .editor-container { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header><h1>Editor Markdown</h1></header>
+    <div class="toolbar">
+      <button class="toolbar-btn" onclick="insertFormat('**','**')">Bold</button>
+      <button class="toolbar-btn" onclick="insertFormat('*','*')">Italic</button>
+      <button class="toolbar-btn" onclick="insertFormat('## ','')">H2</button>
+      <button class="toolbar-btn" onclick="insertFormat('### ','')">H3</button>
+      <button class="toolbar-btn" onclick="insertFormat('`','`')">Code</button>
+      <button class="toolbar-btn" onclick="insertFormat('```\n','\n```')">Code Block</button>
+      <button class="toolbar-btn" onclick="insertFormat('- ','')">List</button>
+      <button class="toolbar-btn" onclick="insertFormat('> ','')">Quote</button>
+      <button class="toolbar-btn" onclick="insertFormat('[','](https://)')">Link</button>
+      <button class="toolbar-btn" onclick="clearEditor()">Limpar</button>
+    </div>
+    <div class="editor-container">
+      <div class="editor-pane"><div class="pane-header">Editor</div><textarea id="editor" placeholder="Digite seu markdown aqui..."></textarea></div>
+      <div class="preview-pane"><div class="pane-header">Preview</div><div class="preview-content" id="preview"></div><div class="word-count" id="wordCount"></div></div>
+    </div>
+  </div>
+  <script>
+    const editor = document.getElementById("editor"); const preview = document.getElementById("preview"); const wordCount = document.getElementById("wordCount");
+    const sampleText = `# Bem-vindo ao Editor Markdown\n\nEste é um **editor markdown** simples com *preview em tempo real*.\n\n## Funcionalidades\n\n- Suporte a **negrito** e *itálico*\n- Listas ordenadas e não ordenadas\n- Blocos de código\n- Citações e links\n\n## Exemplo de código\n\n```python\ndef hello():\n    print("Olá, mundo!")\n```\n\n> Esta é uma citação de exemplo\n\n[Visite o GitHub](https://github.com)`;
+    editor.value = sampleText;
+    function convertMarkdown(md) { let html = md; html = html.replace(/```(\w+)?\n([\s\S]+?)```/g, (m, lang, code) => `<pre><code>${escapeHtml(code.trim())}</code></pre>`); html = html.replace(/^### (.+)$/gm, "<h3>$1</h3>"); html = html.replace(/^## (.+)$/gm, "<h2>$1</h2>"); html = html.replace(/^# (.+)$/gm, "<h1>$1</h1>"); html = html.replace(/^> (.+)$/gm, "<blockquote>$1</blockquote>"); html = html.replace(/^---$/gm, "<hr>"); html = html.replace(/!\[([^\]]+)\]\(([^)]+)\)/g, "<img src=\"$2\" alt=\"$1\">"); html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, "<a href=\"$2\">$1</a>"); html = html.replace(/`([^`]+)`/g, "<code>$1</code>"); html = html.replace(/\*\*\*(.+?)\*\*\*/g, "<strong><em>$1</em></strong>"); html = html.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>"); html = html.replace(/\*(.+?)\*/g, "<em>$1</em>"); html = html.replace(/^- (.+)$/gm, "<li>$1</li>"); html = html.replace(/(<li>[\s\S]+?<\/li>)(?!\s*<li>)/g, "<ul>$1</ul>"); html = html.replace(/^\d+\. (.+)$/gm, "<li>$1</li>"); html = html.replace(/(<li>[\s\S]+?<\/li>)(?!\s*<li>)/g, "<ol>$1</ol>"); html = html.replace(/^(?!<[houlp]|<\/?[houlp])(.+)$/gm, "<p>$1</p>"); return html; }
+    function escapeHtml(text) { const div = document.createElement("div"); div.textContent = text; return div.innerHTML; }
+    function updatePreview() { const md = editor.value; preview.innerHTML = convertMarkdown(md); const words = md.trim() ? md.trim().split(/\s+/).length : 0; wordCount.textContent = `${words} palavras`; }
+    function insertFormat(before, after) { const start = editor.selectionStart; const end = editor.selectionEnd; const selected = editor.value.substring(start, end); const newText = before + selected + after; editor.value = editor.value.substring(0, start) + newText + editor.value.substring(end); editor.focus(); editor.selectionStart = start + before.length; editor.selectionEnd = end + before.length; updatePreview(); }
+    function clearEditor() { editor.value = ""; updatePreview(); }
+    editor.addEventListener("keydown", e => { if (e.ctrlKey || e.metaKey) { if (e.key === "b") { e.preventDefault(); insertFormat("**","**"); } else if (e.key === "i") { e.preventDefault(); insertFormat("*","*"); } } if (e.key === "Tab") { e.preventDefault(); const start = editor.selectionStart; const end = editor.selectionEnd; editor.value = editor.value.substring(0,start) + "  " + editor.value.substring(end); editor.selectionStart = editor.selectionEnd = start + 2; } });
+    editor.addEventListener("input", updatePreview); updatePreview();
+  </script>
+</body>
+</html>
